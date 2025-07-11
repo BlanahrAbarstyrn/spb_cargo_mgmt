@@ -230,10 +230,6 @@
             <button onclick="addBackpackItem()">Add Item to Back</button>
           </div>
         </div>
-      
-        <!--div id="current-load-summary" style="margin-top: 15px; padding: 10px; background-color: rgba(60, 60, 60, 0.8); border-radius: 6px;"-->
-          <!-- Load summary will be displayed here -->
-        <!--/div-->
       </div>
     </div>
 
@@ -241,32 +237,27 @@
         <div class="section">
           <h2>Cargo in Vicinity</h2>
           <div id="available-cargo">
-            <div class="cargo-item">
-              <label>Item Name: <input type="text" placeholder="Medical Supplies" /></label>
-              <label>Weight: <input type="number" step="0.1" placeholder="15.0" /></label>
-              <label>Size: 
-                <select class="cargo-size">
-                  <option value="1">S (1 unit)</option>
-                  <option value="2">M (2 units)</option>
-                  <option value="4">L (4 units)</option>
-                  <option value="6">XL (6 units)</option>
-                </select>
-              </label>
-              <label>Priority: <input type="number" min="1" max="5" placeholder="3" /></label>
-            </div>
-          </div>
-          <button onclick="addCargoItem()">Add Another Available Item</button>
         </div>
+          <button onclick="addCargoItem()">Add Another Available Item</button>
       </div>
-      
+    </div>   
       <div class="child-container-wide">
         <div class="section">
           <h2>Optimization</h2>
-          <button onclick="optimizeCargo()">🎯 Optimize Load</button>
-          <div id="results"></div>
+          <div style="margin-bottom: 15px;">
+            <label>Greedy Strategy: 
+              <select id="greedyStrategy">
+                <option value="value-weight">Value/Weight Ratio - Maximum efficiency</option>
+                <option value="priority-first">Priority First - Urgent deliveries</option>
+                <option value="size-efficiency">Size Efficiency - Fit more items</option>
+              </select>
+            </label>
+          </div>
+          <button onclick="optimizeCargo()">🎯 Optimize Load (Greedy)</button>
+          <div id="results" style="margin-top: 15px;"></div>
         </div>
       </div>
-    </div>
+
   </div>
 </body>
 </html>
@@ -320,6 +311,10 @@ function toggleBodySlot(slot) {
     details.style.display = 'block';
   } else {
     details.style.display = 'none';
+    // Clear the input fields when set to empty
+    document.getElementById(slot + 'Name').value = '';
+    document.getElementById(slot + 'Weight').value = '';
+    document.getElementById(slot + 'Priority').value = '';
     currentBodySlotItems[slot] = null;
   }
   updateBodySlot(slot);
@@ -475,8 +470,10 @@ function calculateCarryingCapacity(totalWeight, backpackSize, bodySlotCount) {
 
 function addCargoItem() {
   const container = document.getElementById('available-cargo');
+  const itemId = Date.now() + Math.random(); // Unique ID for tracking
   const newItem = document.createElement('div');
   newItem.className = 'cargo-item';
+  newItem.setAttribute('data-item-id', itemId);
   newItem.innerHTML = `
     <label>Item Name: <input type="text" placeholder="Cargo Item" /></label>
     <label>Weight: <input type="number" step="0.1" placeholder="10.0" /></label>
@@ -489,12 +486,167 @@ function addCargoItem() {
       </select>
     </label>
     <label>Priority: <input type="number" min="1" max="5" placeholder="3" /></label>
+    <button onclick="removeAvailableItem('${itemId}')" style="background-color: #ff4444;">Remove</button>
   `;
   container.appendChild(newItem);
 }
 
+function removeAvailableItem(itemId) {
+  const item = document.querySelector(`[data-item-id="${itemId}"]`);
+  if (item) {
+    item.remove();
+  }
+}
+
 function optimizeCargo() {
-  document.getElementById('results').innerHTML = '<p>Optimization coming soon! 📦</p>';
+  const strategy = document.getElementById('greedyStrategy').value;
+  const availableItems = getAvailableCargoItems();
+  
+  if (availableItems.length === 0) {
+    document.getElementById('results').innerHTML = '<p style="color: #ff4444;">No available cargo items to optimize!</p>';
+    return;
+  }
+  
+  // Calculate remaining capacity
+  const capacity = getRemainingCapacity();
+  
+  // Run greedy optimization
+  const result = greedyOptimization(availableItems, capacity, strategy);
+  
+  // Display results
+  displayOptimizationResults(result, strategy);
+}
+
+function getAvailableCargoItems() {
+  const items = [];
+  const cargoItems = document.querySelectorAll('#available-cargo .cargo-item');
+  
+  cargoItems.forEach((item, index) => {
+    const name = item.querySelector('input[type="text"]').value || `Item ${index + 1}`;
+    const weight = parseFloat(item.querySelector('input[type="number"]').value) || 0;
+    const size = parseInt(item.querySelector('.cargo-size').value) || 1;
+    const priority = parseInt(item.querySelector('input[min="1"]').value) || 3;
+    
+    if (weight > 0) { // Only include items with weight
+      items.push({ name, weight, size, priority, index });
+    }
+  });
+  
+  return items;
+}
+
+function getRemainingCapacity() {
+  // Calculate current load
+  const backpackWeight = currentBackpackItems.reduce((sum, item) => sum + (item.weight || 0), 0);
+  const backpackSize = currentBackpackItems.reduce((sum, item) => sum + (item.size || 0), 0);
+  const bodySlotWeight = Object.values(currentBodySlotItems)
+    .filter(item => item !== null)
+    .reduce((sum, item) => sum + (item.weight || 0), 0);
+  const bodySlotCount = Object.values(currentBodySlotItems).filter(item => item !== null).length;
+  
+  // Calculate capacity
+  const baseCapacity = parseInt(document.getElementById('baseCapacity').value) || 120;
+  const gearWeight = parseFloat(document.getElementById('gearWeight').value) || 0;
+  const chiraliumCrystals = parseInt(document.getElementById('chiraliumCrystals').value) || 0;
+  const chiraliumBoost = Math.floor(chiraliumCrystals / 1000 * 10) / 10;
+  
+  const maxWeight = baseCapacity + chiraliumBoost - gearWeight;
+  const maxBackpackSize = 28;
+  const maxBodySlots = 4;
+  
+  return {
+    remainingWeight: maxWeight - (backpackWeight + bodySlotWeight),
+    remainingBackpackSize: maxBackpackSize - backpackSize,
+    remainingBodySlots: maxBodySlots - bodySlotCount
+  };
+}
+
+function greedyOptimization(items, capacity, strategy) {
+  // Sort items based on strategy
+  let sortedItems = [...items];
+  
+  switch (strategy) {
+    case 'value-weight':
+      sortedItems.sort((a, b) => (b.priority / b.weight) - (a.priority / a.weight));
+      break;
+    case 'priority-first':
+      sortedItems.sort((a, b) => {
+        if (b.priority !== a.priority) return b.priority - a.priority;
+        return (b.priority / b.weight) - (a.priority / a.weight); // Tiebreaker
+      });
+      break;
+    case 'size-efficiency':
+      sortedItems.sort((a, b) => (b.priority / b.size) - (a.priority / a.size));
+      break;
+  }
+  
+  const selected = [];
+  let currentWeight = 0;
+  let currentBackpackSize = 0;
+  let currentBodySlots = 0;
+  
+  for (const item of sortedItems) {
+    const fitsWeight = currentWeight + item.weight <= capacity.remainingWeight;
+    const fitsBackpack = item.size === 1 ? 
+      (currentBodySlots < capacity.remainingBodySlots || currentBackpackSize + item.size <= capacity.remainingBackpackSize) :
+      currentBackpackSize + item.size <= capacity.remainingBackpackSize;
+    
+    if (fitsWeight && fitsBackpack) {
+      selected.push(item);
+      currentWeight += item.weight;
+      
+      if (item.size === 1 && currentBodySlots < capacity.remainingBodySlots) {
+        currentBodySlots++;
+      } else {
+        currentBackpackSize += item.size;
+      }
+    }
+  }
+  
+  return {
+    items: selected,
+    totalWeight: currentWeight,
+    totalSize: currentBackpackSize + currentBodySlots,
+    strategy: strategy
+  };
+}
+
+function displayOptimizationResults(result, strategy) {
+  const strategyNames = {
+    'value-weight': 'Value/Weight Ratio',
+    'priority-first': 'Priority First',
+    'size-efficiency': 'Size Efficiency'
+  };
+  
+  let html = `
+    <div style="background-color: rgba(60, 60, 60, 0.9); padding: 15px; border-radius: 6px;">
+      <h4>Optimization Results (${strategyNames[strategy]})</h4>
+      <p><strong>Selected ${result.items.length} items:</strong></p>
+      <ul>
+  `;
+  
+  result.items.forEach(item => {
+    html += `<li>${item.name} - ${item.weight}kg, ${item.size === 1 ? 'S' : item.size === 2 ? 'M' : item.size === 4 ? 'L' : 'XL'}, Priority ${item.priority}</li>`;
+  });
+  
+  html += `
+      </ul>
+      <p><strong>Total:</strong> ${result.totalWeight.toFixed(1)}kg, ${result.totalSize} units</p>
+      <div style="margin-top: 15px;">
+        <button onclick="applyOptimization()" style="background-color: #2196F3; margin-right: 10px;">
+          📦 Apply to Sam's Load
+        </button>
+        <button onclick="clearResults()" style="background-color: #666;">
+          Clear Results
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('results').innerHTML = html;
+  
+  // Store the result globally so applyOptimization can access it
+  window.lastOptimizationResult = result;
 }
 
 // Update calculations when values change
@@ -506,4 +658,96 @@ document.addEventListener('input', function() {
 window.addEventListener('load', function() {
   updateCurrentLoad();
 });
+
+function applyOptimization() {
+  if (!window.lastOptimizationResult) {
+    alert('No optimization results to apply!');
+    return;
+  }
+  
+  const result = window.lastOptimizationResult;
+  
+  // Add items to backpack and body slots
+  result.items.forEach(item => {
+    if (item.size === 1) {
+      // Try to place S items in body slots first
+      if (!addToBodySlot(item)) {
+        // If body slots full, add to backpack
+        addToBackpack(item);
+      }
+    } else {
+      // M, L, XL items go to backpack
+      addToBackpack(item);
+    }
+    
+    // Remove item from available cargo
+    removeAvailableItemByIndex(item.index);
+  });
+  
+  // Update the display
+  renderBackpackItems();
+  updateCurrentLoad();
+  
+  // Show confirmation
+  document.getElementById('results').innerHTML += `
+    <p style="color: #4CAF50; margin-top: 10px;">
+      ✅ Optimization applied! ${result.items.length} items added to Sam's load and removed from available cargo.
+    </p>
+  `;
+}
+
+function removeAvailableItemByIndex(index) {
+  const cargoItems = document.querySelectorAll('#available-cargo .cargo-item');
+  if (cargoItems[index]) {
+    cargoItems[index].remove();
+  }
+}
+
+function addToBodySlot(item) {
+  const slots = ['leftArm', 'rightArm', 'leftLeg', 'rightLeg'];
+  
+  for (const slot of slots) {
+    if (currentBodySlotItems[slot] === null) {
+      // Set the dropdown to occupied
+      document.getElementById(slot + 'Status').value = 'occupied';
+      
+      // Show the input fields
+      document.getElementById(slot + 'Details').style.display = 'block';
+      
+      // Fill in the item data
+      document.getElementById(slot + 'Name').value = item.name;
+      document.getElementById(slot + 'Weight').value = item.weight;
+      document.getElementById(slot + 'Priority').value = item.priority;
+      
+      // Update the data structure
+      currentBodySlotItems[slot] = {
+        name: item.name,
+        weight: item.weight,
+        size: 1,
+        priority: item.priority
+      };
+      
+      return true; // Successfully placed
+    }
+  }
+  
+  return false; // No empty slots
+}
+
+function addToBackpack(item) {
+  const newItem = {
+    id: Date.now() + Math.random(), // Unique ID
+    name: item.name,
+    weight: item.weight,
+    size: item.size,
+    priority: item.priority
+  };
+  
+  currentBackpackItems.push(newItem);
+}
+
+function clearResults() {
+  document.getElementById('results').innerHTML = '';
+  window.lastOptimizationResult = null;
+}
 </script> 
