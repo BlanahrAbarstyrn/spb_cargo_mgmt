@@ -291,6 +291,25 @@
         </div>
         <div class="section">
           <h2>Save/Load Configuration</h2>
+  
+          <!-- Auto-save status -->
+          <div style="margin-bottom: 15px; padding: 10px; background-color: rgba(60, 60, 60, 0.8); border-radius: 4px;">
+            <div style="color: #4CAF50; margin-bottom: 5px;">
+              <small>✅ Auto-saved: <span id="lastSaved">Never</span></small>
+            </div>
+            <div style="color: #00ccff;">
+              <small>💾 Save Slots: 
+                <button onclick="saveToSlot(1)" style="padding: 4px 8px; margin: 2px;">Save 1</button>
+                <button onclick="loadFromSlot(1)" style="padding: 4px 8px; margin: 2px;">Load 1</button>
+                <button onclick="saveToSlot(2)" style="padding: 4px 8px; margin: 2px;">Save 2</button>
+                <button onclick="loadFromSlot(2)" style="padding: 4px 8px; margin: 2px;">Load 2</button>
+                <button onclick="saveToSlot(3)" style="padding: 4px 8px; margin: 2px;">Save 3</button>
+                <button onclick="loadFromSlot(3)" style="padding: 4px 8px; margin: 2px;">Load 3</button>
+              </small>
+            </div>
+          </div>
+  
+          <!-- File-based options -->
           <button onclick="downloadSaveFile()">⬇️ Download Save File</button>
           <input type="file" id="uploadFile" accept=".json" onchange="uploadSaveFile(event)" style="display: none;">
           <button onclick="document.getElementById('uploadFile').click()">⬆️ Upload Save File</button>
@@ -832,6 +851,161 @@ function clearResults() {
   document.getElementById('results').innerHTML = '';
   window.lastOptimizationResult = null;
 }
+
+// Auto-save functionality
+function autoSave() {
+  const gameState = createGameState();
+  localStorage.setItem('cargoOptimizer_autoSave', JSON.stringify(gameState));
+  
+  // Update last saved timestamp
+  const now = new Date().toLocaleTimeString();
+  document.getElementById('lastSaved').textContent = now;
+}
+
+// Create game state object (used by both auto-save and manual save)
+function createGameState() {
+  return {
+    version: "1.0",
+    samStatus: {
+      baseCapacity: document.getElementById('baseCapacity').value,
+      gearWeight: document.getElementById('gearWeight').value,
+      chiraliumCrystals: document.getElementById('chiraliumCrystals').value
+    },
+    currentBackpackItems: currentBackpackItems,
+    currentBodySlotItems: currentBodySlotItems,
+    availableCargo: getAvailableCargoItems(),
+    timestamp: new Date().toISOString(),
+    metadata: {
+      totalItems: currentBackpackItems.length,
+      bodySlotCount: Object.values(currentBodySlotItems).filter(item => item !== null).length
+    }
+  };
+}
+
+// Save to numbered slot
+function saveToSlot(slotNumber) {
+  const gameState = createGameState();
+  const slotKey = `cargoOptimizer_slot${slotNumber}`;
+  
+  localStorage.setItem(slotKey, JSON.stringify(gameState));
+  
+  // Visual feedback
+  const button = event.target;
+  const originalText = button.textContent;
+  button.textContent = '✅ Saved!';
+  button.style.backgroundColor = '#4CAF50';
+  
+  setTimeout(() => {
+    button.textContent = originalText;
+    button.style.backgroundColor = '';
+  }, 1000);
+  
+  console.log(`Game saved to slot ${slotNumber}`);
+}
+
+// Load from numbered slot
+function loadFromSlot(slotNumber) {
+  const slotKey = `cargoOptimizer_slot${slotNumber}`;
+  const savedState = localStorage.getItem(slotKey);
+  
+  if (savedState) {
+    try {
+      const gameState = JSON.parse(savedState);
+      loadGameState(gameState);
+      
+      // Visual feedback
+      const button = event.target;
+      const originalText = button.textContent;
+      button.textContent = '✅ Loaded!';
+      button.style.backgroundColor = '#2196F3';
+      
+      setTimeout(() => {
+        button.textContent = originalText;
+        button.style.backgroundColor = '';
+      }, 1000);
+      
+      console.log(`Game loaded from slot ${slotNumber}`);
+    } catch (error) {
+      alert(`Error loading from slot ${slotNumber}: ${error.message}`);
+    }
+  } else {
+    alert(`No save data found in slot ${slotNumber}`);
+  }
+}
+
+// Load auto-save on page load
+function loadAutoSave() {
+  const autoSaveData = localStorage.getItem('cargoOptimizer_autoSave');
+  if (autoSaveData) {
+    try {
+      const gameState = JSON.parse(autoSaveData);
+      loadGameState(gameState);
+      
+      // Update last saved display
+      const savedTime = new Date(gameState.timestamp).toLocaleTimeString();
+      document.getElementById('lastSaved').textContent = savedTime;
+      
+      console.log('Auto-save loaded successfully');
+    } catch (error) {
+      console.error('Error loading auto-save:', error);
+    }
+  }
+}
+
+// Enhanced clear all data
+function clearAllData() {
+  if (confirm('Are you sure you want to clear all data? This will also clear auto-save and all save slots.')) {
+    // Clear all arrays
+    currentBackpackItems = [];
+    currentBodySlotItems = {
+      leftArm: null,
+      rightArm: null,
+      leftLeg: null,
+      rightLeg: null
+    };
+    
+    // Reset form values
+    document.getElementById('baseCapacity').value = 120;
+    document.getElementById('gearWeight').value = 0;
+    document.getElementById('chiraliumCrystals').value = 0;
+    
+    // Clear available cargo
+    document.getElementById('available-cargo').innerHTML = '';
+    
+    // Clear results
+    document.getElementById('results').innerHTML = '';
+    
+    // Reset body slots
+    restoreBodySlots();
+    
+    // Clear localStorage
+    localStorage.removeItem('cargoOptimizer_autoSave');
+    localStorage.removeItem('cargoOptimizer_slot1');
+    localStorage.removeItem('cargoOptimizer_slot2');
+    localStorage.removeItem('cargoOptimizer_slot3');
+    
+    // Reset last saved display
+    document.getElementById('lastSaved').textContent = 'Never';
+    
+    // Update displays
+    renderBackpackItems();
+    updateCurrentLoad();
+    
+    alert('All data cleared!');
+  }
+}
+
+// Update existing event listeners to include auto-save
+document.addEventListener('input', function() {
+  updateCurrentLoad();
+  autoSave(); // Add this line
+});
+
+// Load auto-save when page loads
+window.addEventListener('load', function() {
+  updateCurrentLoad();
+  loadAutoSave(); // Add this line
+});
 
 // Download current state as JSON file
 function downloadSaveFile() {
