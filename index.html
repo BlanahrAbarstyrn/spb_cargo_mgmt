@@ -37,7 +37,7 @@
       display: flex;
       flex-direction: column;
       width: 100%;
-      max-width: 800px;
+      max-width: 750px;
       gap: 10px;
       padding: 10px;
     }
@@ -71,6 +71,34 @@
       text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     }
     
+    .load-container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .body-slots-container {
+      flex: 1;
+      min-width: 300px;
+    }
+
+    .backpack-container {
+      flex: 1;
+      min-width: 300px;
+    }
+
+    /* On very narrow screens, make them stack */
+    @media (max-width: 650px) {
+      .load-container {
+        flex-direction: column;
+      }
+  
+      .body-slots-container,
+      .backpack-container {
+        min-width: 100%;
+      }
+    }
+
     input, select {
       background-color: rgba(51, 51, 51, 0.9);
       color: white;
@@ -130,6 +158,9 @@
         <label>Chiralium Crystals: <input type="number" id="chiraliumCrystals" value="0" placeholder="Total crystals carried" /></label>
         <div id="chiralium-boost" style="margin-top: 5px; color: #00ccff;"></div>
         <div id="effective-capacity" style="margin-top: 10px; margin-bottom: 60px; font-weight: bold; color: #4CAF50;"></div>
+      </div>
+
+      <div class="section">
         <h2>Priority Legend</h2>
         <p>5 => Story-critical</p>
         <p>4 => Sam's Orders</p>
@@ -146,27 +177,29 @@
           <div id="current-load-summary" style="margin-top: 15px; padding: 10px; background-color: rgba(60, 60, 60, 0.8); border-radius: 6px;">
             <!-- Load summary will be displayed here -->
           </div>
-      
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-        <div style="margin-top: 15px;">
-          <h3>Attached to Suit (S items only)</h3>
-          <div id="body-slot-items">
-          <div class="body-slot">
-            <label>Left Arm:</label>
-            <div class="cargo-item">
-              <label>Status: 
-                <select id="leftArmStatus" onchange="toggleBodySlot('leftArm')">
-                  <option value="">Empty</option>
-                  <option value="occupied">S Item (1 unit)</option>
-                </select>
-              </label>
-              <div id="leftArmDetails" style="display: none;">
-                <label>Name: <input type="text" id="leftArmName" placeholder="Item name" onchange="updateBodySlot('leftArm')" /></label>
-                <label>Weight: <input type="number" step="0.1" id="leftArmWeight" placeholder="5.0" onchange="updateBodySlot('leftArm')" /></label>
-                <label>Priority: <input type="number" min="1" max="5" id="leftArmPriority" placeholder="3" onchange="updateBodySlot('leftArm')" /></label>
+        </div>
+
+      <div class="section">
+        <div class="load-container">
+          <div class="body-slots-container">
+            <h3>Attached to Suit (S items only)</h3>
+            <div id="body-slot-items">
+            <div class="body-slot">
+              <label>Left Arm:</label>
+              <div class="cargo-item">
+                <label>Status: 
+                  <select id="leftArmStatus" onchange="toggleBodySlot('leftArm')">
+                    <option value="">Empty</option>
+                    <option value="occupied">S Item (1 unit)</option>
+                  </select>
+                </label>
+                <div id="leftArmDetails" style="display: none;">
+                  <label>Name: <input type="text" id="leftArmName" placeholder="Item name" onchange="updateBodySlot('leftArm')" /></label>
+                  <label>Weight: <input type="number" step="0.1" id="leftArmWeight" placeholder="5.0" onchange="updateBodySlot('leftArm')" /></label>
+                  <label>Priority: <input type="number" min="1" max="5" id="leftArmPriority" placeholder="3" onchange="updateBodySlot('leftArm')" /></label>
+                </div>
               </div>
             </div>
-          </div>
         
           <div class="body-slot">
             <label>Right Arm:</label>
@@ -222,7 +255,7 @@
       </div>
 
         
-          <div style="margin-top: 15px;">
+          <div class="backpack-container">
             <h3>Carried on Back</h3>
             <div id="backpack-items">
               <!-- Individual backpack items will be listed here -->
@@ -240,7 +273,7 @@
         </div>
           <button onclick="addCargoItem()">Add Another Available Item</button>
       </div>
-    </div>   
+    </div>
       <div class="child-container-wide">
         <div class="section">
           <h2>Optimization</h2>
@@ -256,8 +289,15 @@
           <button onclick="optimizeCargo()">🎯 Optimize Load (Greedy)</button>
           <div id="results" style="margin-top: 15px;"></div>
         </div>
+        <div class="section">
+          <h2>Save/Load Configuration</h2>
+          <button onclick="downloadSaveFile()">⬇️ Download Save File</button>
+          <input type="file" id="uploadFile" accept=".json" onchange="uploadSaveFile(event)" style="display: none;">
+          <button onclick="document.getElementById('uploadFile').click()">⬆️ Upload Save File</button>
+          <button onclick="clearAllData()" style="background-color: #ff4444; margin-left: 10px;">🗑️ Clear All Data</button>
+        </div>
       </div>
-
+    </div>
   </div>
 </body>
 </html>
@@ -749,5 +789,184 @@ function addToBackpack(item) {
 function clearResults() {
   document.getElementById('results').innerHTML = '';
   window.lastOptimizationResult = null;
+}
+
+// Download current state as JSON file
+function downloadSaveFile() {
+  const gameState = {
+    version: "1.0", // For future compatibility
+    samStatus: {
+      baseCapacity: document.getElementById('baseCapacity').value,
+      gearWeight: document.getElementById('gearWeight').value,
+      chiraliumCrystals: document.getElementById('chiraliumCrystals').value
+    },
+    currentBackpackItems: currentBackpackItems,
+    currentBodySlotItems: currentBodySlotItems,
+    availableCargo: getAvailableCargoItems(),
+    timestamp: new Date().toISOString(),
+    metadata: {
+      totalItems: currentBackpackItems.length,
+      bodySlotCount: Object.values(currentBodySlotItems).filter(item => item !== null).length
+    }
+  };
+  
+  const dataStr = JSON.stringify(gameState, null, 2);
+  const dataBlob = new Blob([dataStr], {type: 'application/json'});
+  
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(dataBlob);
+  link.download = `cargo-optimizer-${new Date().toISOString().split('T')[0]}.json`;
+  link.click();
+  
+  // Clean up
+  URL.revokeObjectURL(link.href);
+  
+  console.log('Save file downloaded!');
+}
+
+// Upload and load JSON file
+function uploadSaveFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const gameState = JSON.parse(e.target.result);
+      loadGameState(gameState);
+      alert(`Save file loaded successfully!\nLoaded: ${gameState.metadata?.totalItems || 0} backpack items, ${gameState.metadata?.bodySlotCount || 0} body slot items`);
+    } catch (error) {
+      alert('Error loading save file: ' + error.message);
+      console.error('Save file error:', error);
+    }
+  };
+  reader.readAsText(file);
+  
+  // Clear the file input so the same file can be loaded again
+  event.target.value = '';
+}
+
+// Load game state from parsed JSON
+function loadGameState(gameState) {
+  // Restore Sam's status
+  if (gameState.samStatus) {
+    document.getElementById('baseCapacity').value = gameState.samStatus.baseCapacity || 120;
+    document.getElementById('gearWeight').value = gameState.samStatus.gearWeight || 0;
+    document.getElementById('chiraliumCrystals').value = gameState.samStatus.chiraliumCrystals || 0;
+  }
+  
+  // Restore backpack items
+  currentBackpackItems = gameState.currentBackpackItems || [];
+  
+  // Restore body slot items
+  currentBodySlotItems = gameState.currentBodySlotItems || {
+    leftArm: null,
+    rightArm: null,
+    leftLeg: null,
+    rightLeg: null
+  };
+  
+  // Restore body slot UI
+  restoreBodySlots();
+  
+  // Restore available cargo
+  if (gameState.availableCargo) {
+    restoreAvailableCargo(gameState.availableCargo);
+  }
+  
+  // Update all displays
+  renderBackpackItems();
+  updateCurrentLoad();
+}
+
+// Restore body slot UI elements
+function restoreBodySlots() {
+  const slots = ['leftArm', 'rightArm', 'leftLeg', 'rightLeg'];
+  
+  slots.forEach(slot => {
+    const item = currentBodySlotItems[slot];
+    const statusSelect = document.getElementById(slot + 'Status');
+    const detailsDiv = document.getElementById(slot + 'Details');
+    
+    if (item) {
+      statusSelect.value = 'occupied';
+      detailsDiv.style.display = 'block';
+      document.getElementById(slot + 'Name').value = item.name || '';
+      document.getElementById(slot + 'Weight').value = item.weight || 0;
+      document.getElementById(slot + 'Priority').value = item.priority || 3;
+    } else {
+      statusSelect.value = '';
+      detailsDiv.style.display = 'none';
+      document.getElementById(slot + 'Name').value = '';
+      document.getElementById(slot + 'Weight').value = '';
+      document.getElementById(slot + 'Priority').value = '';
+    }
+  });
+}
+
+// Restore available cargo items
+function restoreAvailableCargo(availableItems) {
+  // Clear existing available cargo
+  const container = document.getElementById('available-cargo');
+  container.innerHTML = '';
+  
+  // Add each saved item
+  availableItems.forEach(item => {
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'cargo-item';
+    const itemId = Date.now() + Math.random();
+    itemDiv.setAttribute('data-item-id', itemId);
+    
+    itemDiv.innerHTML = `
+      <label>Item Name: <input type="text" value="${item.name || ''}" /></label>
+      <label>Weight: <input type="number" step="0.1" value="${item.weight || 0}" /></label>
+      <label>Size: 
+        <select class="cargo-size">
+          <option value="1" ${item.size === 1 ? 'selected' : ''}>S (1 unit)</option>
+          <option value="2" ${item.size === 2 ? 'selected' : ''}>M (2 units)</option>
+          <option value="4" ${item.size === 4 ? 'selected' : ''}>L (4 units)</option>
+          <option value="6" ${item.size === 6 ? 'selected' : ''}>XL (6 units)</option>
+        </select>
+      </label>
+      <label>Priority: <input type="number" min="1" max="5" value="${item.priority || 3}" /></label>
+      <button onclick="removeAvailableItem('${itemId}')" style="background-color: #ff4444;">Remove</button>
+    `;
+    
+    container.appendChild(itemDiv);
+  });
+}
+
+// Clear all data
+function clearAllData() {
+  if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+    // Clear all arrays
+    currentBackpackItems = [];
+    currentBodySlotItems = {
+      leftArm: null,
+      rightArm: null,
+      leftLeg: null,
+      rightLeg: null
+    };
+    
+    // Reset form values
+    document.getElementById('baseCapacity').value = 120;
+    document.getElementById('gearWeight').value = 0;
+    document.getElementById('chiraliumCrystals').value = 0;
+    
+    // Clear available cargo
+    document.getElementById('available-cargo').innerHTML = '';
+    
+    // Clear results
+    document.getElementById('results').innerHTML = '';
+    
+    // Reset body slots
+    restoreBodySlots();
+    
+    // Update displays
+    renderBackpackItems();
+    updateCurrentLoad();
+    
+    alert('All data cleared!');
+  }
 }
 </script> 
