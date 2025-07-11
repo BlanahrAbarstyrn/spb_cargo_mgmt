@@ -699,6 +699,48 @@ window.addEventListener('load', function() {
   updateCurrentLoad();
 });
 
+// Add this to your initialization
+document.addEventListener('DOMContentLoaded', function() {
+  // Handle when user finishes typing (clicks away or presses Enter)
+  document.addEventListener('blur', function(e) {
+    if (e.target.type === 'number' && e.target.min && e.target.max) {
+      validateNumberInput(e.target);
+    }
+  }, true);
+  
+  // Handle when user changes the value and moves on
+  document.addEventListener('change', function(e) {
+    if (e.target.type === 'number' && e.target.min && e.target.max) {
+      validateNumberInput(e.target);
+    }
+  });
+});
+
+function validateNumberInput(input) {
+  const min = parseInt(input.min);
+  const max = parseInt(input.max);
+  let value = parseInt(input.value);
+  
+  // Handle empty or invalid input
+  if (isNaN(value)) {
+    if (input.placeholder) {
+      value = parseInt(input.placeholder) || min;
+    } else {
+      value = min;
+    }
+  }
+  
+  // Clamp to valid range
+  if (value < min) value = min;
+  if (value > max) value = max;
+  
+  // Update the input field
+  input.value = value;
+  
+  // Trigger any change handlers
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 function applyOptimization() {
   if (!window.lastOptimizationResult) {
     alert('No optimization results to apply!');
