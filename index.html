@@ -10,7 +10,7 @@
       padding: 0;
       background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1)),
                   url('../assets/ladderoverchasm.jpg') center/cover fixed;
-                  /*url('ladderoverchasm.jpg') center/cover fixed;*/
+                  /* url('ladderoverchasm.jpg') center/cover fixed; */
       color: #ffffff;
       min-height: 100vh;
     }
@@ -305,6 +305,15 @@
         <div class="section">
           <h2>Optimization</h2>
           <div style="margin-bottom: 15px;">
+            <label>Algorithm: 
+              <select id="algorithmChoice" onchange="toggleStrategyOptions()">
+                <option value="greedy">Greedy (Fast)</option>
+                <option value="dynamic">Dynamic Programming (Optimal)</option>
+                <option value="compare">Compare Both</option>
+              </select>
+            </label>
+          </div>
+          <div id="greedyOptions" style="margin-bottom: 15px;">
             <label>Greedy Strategy: 
               <select id="greedyStrategy">
                 <option value="value-weight">Value/Weight Ratio - Maximum efficiency</option>
@@ -313,9 +322,10 @@
               </select>
             </label>
           </div>
-          <button onclick="optimizeCargo()">🎯 Optimize Load (Greedy)</button>
+          <button onclick="optimizeCargo()">🎯 Optimize Load</button>
           <div id="results" style="margin-top: 15px;"></div>
         </div>
+
         <div class="section">
           <h2>Save/Load Configuration</h2>
   
@@ -762,7 +772,137 @@ function getRemainingCapacity() {
   };
 }
 
+function toggleStrategyOptions() {
+  const algorithm = document.getElementById('algorithmChoice').value;
+  const greedyOptions = document.getElementById('greedyOptions');
+  
+  if (algorithm === 'dynamic') {
+    greedyOptions.style.display = 'none';
+  } else {
+    greedyOptions.style.display = 'block';
+  }
+}
 
+function optimizeCargo() {
+  const algorithm = document.getElementById('algorithmChoice').value;
+  const availableItems = getAvailableCargoItems();
+  
+  if (availableItems.length === 0) {
+    document.getElementById('results').innerHTML = '<p style="color: #ff4444;">No available cargo items to optimize!</p>';
+    return;
+  }
+  
+  // Calculate remaining capacity
+  const capacity = getRemainingCapacity();
+  
+  // Record start time for performance comparison
+  const startTime = performance.now();
+  
+  let results = [];
+  
+  if (algorithm === 'greedy') {
+    const strategy = document.getElementById('greedyStrategy').value;
+    const result = greedyOptimization(availableItems, capacity, strategy);
+    result.executionTime = performance.now() - startTime;
+    result.algorithm = 'Greedy';
+    results = [result];
+  } else if (algorithm === 'dynamic') {
+    const result = dynamicOptimization(availableItems, capacity);
+    result.executionTime = performance.now() - startTime;
+    result.algorithm = 'Dynamic Programming';
+    results = [result];
+  } else if (algorithm === 'compare') {
+    const strategy = document.getElementById('greedyStrategy').value;
+    
+    const greedyStart = performance.now();
+    const greedyResult = greedyOptimization(availableItems, capacity, strategy);
+    greedyResult.executionTime = performance.now() - greedyStart;
+    greedyResult.algorithm = 'Greedy';
+    
+    const dynamicStart = performance.now();
+    const dynamicResult = dynamicOptimization(availableItems, capacity);
+    dynamicResult.executionTime = performance.now() - dynamicStart;
+    dynamicResult.algorithm = 'Dynamic Programming';
+    
+    results = [greedyResult, dynamicResult];
+  }
+  
+  // Display results
+  displayOptimizationResults(results);
+}
+
+function dynamicOptimization(items, capacity) {
+  const n = items.length;
+  const maxWeight = Math.floor(capacity.remainingWeight * 10); // Convert to tenths for precision
+  const maxSize = capacity.remainingBackpackSize + capacity.remainingBodySlots;
+  
+  // Handle edge cases
+  if (n === 0 || maxWeight <= 0 || maxSize <= 0) {
+    return {
+      items: [],
+      totalWeight: 0,
+      totalSize: 0,
+      totalValue: 0,
+      algorithm: 'Dynamic Programming'
+    };
+  }
+  
+  // Create 3D DP table: [item][weight][size] = max value
+  const dp = Array(n + 1).fill(null).map(() => 
+    Array(maxWeight + 1).fill(null).map(() => 
+      Array(maxSize + 1).fill(0)
+    )
+  );
+  
+  // Fill the DP table
+  for (let i = 1; i <= n; i++) {
+    const item = items[i - 1];
+    const itemWeight = Math.floor(item.weight * 10); // Convert to tenths
+    const itemSize = item.size;
+    const itemValue = item.priority;
+    
+    for (let w = 0; w <= maxWeight; w++) {
+      for (let s = 0; s <= maxSize; s++) {
+        // Don't take the item
+        dp[i][w][s] = dp[i - 1][w][s];
+        
+        // Take the item if it fits
+        if (w >= itemWeight && s >= itemSize) {
+          const withItem = dp[i - 1][w - itemWeight][s - itemSize] + itemValue;
+          dp[i][w][s] = Math.max(dp[i][w][s], withItem);
+        }
+      }
+    }
+  }
+  
+  // Backtrack to find selected items
+  const selectedItems = [];
+  let w = maxWeight;
+  let s = maxSize;
+  
+  for (let i = n; i >= 1; i--) {
+    if (dp[i][w][s] !== dp[i - 1][w][s]) {
+      // This item was selected
+      const item = items[i - 1];
+      selectedItems.push(item);
+      w -= Math.floor(item.weight * 10);
+      s -= item.size;
+    }
+  }
+  
+  // Calculate totals
+  const totalWeight = selectedItems.reduce((sum, item) => sum + item.weight, 0);
+  const totalSize = selectedItems.reduce((sum, item) => sum + item.size, 0);
+  const totalValue = selectedItems.reduce((sum, item) => sum + item.priority, 0);
+  
+  return {
+    items: selectedItems,
+    totalWeight: totalWeight,
+    totalSize: totalSize,
+    totalValue: totalValue,
+    algorithm: 'Dynamic Programming'
+  };
+}
 
 function greedyOptimization(items, capacity, strategy) {
   // Sort items based on strategy
@@ -814,42 +954,80 @@ function greedyOptimization(items, capacity, strategy) {
   };
 }
 
-function displayOptimizationResults(result, strategy) {
-  const strategyNames = {
-    'value-weight': 'Value/Weight Ratio',
-    'priority-first': 'Priority First',
-    'size-efficiency': 'Size Efficiency'
-  };
+function displayOptimizationResults(results) {
+  if (!Array.isArray(results)) {
+    results = [results];
+  }
   
-  let html = `
-    <div style="background-color: rgba(60, 60, 60, 0.9); padding: 15px; border-radius: 6px;">
-      <h4>Optimization Results (${strategyNames[strategy]})</h4>
-      <p><strong>Selected ${result.items.length} items:</strong></p>
-      <ul>
-  `;
+  let html = '';
   
-  result.items.forEach(item => {
-    html += `<li>${item.name} - ${item.weight}kg, ${item.size === 1 ? 'S' : item.size === 2 ? 'M' : item.size === 4 ? 'L' : 'XL'}, Priority ${item.priority}</li>`;
+  results.forEach((result, index) => {
+    const bgColor = index === 0 ? 'rgba(60, 60, 60, 0.9)' : 'rgba(40, 80, 40, 0.9)';
+    
+    html += `
+      <div style="background-color: ${bgColor}; padding: 15px; margin: 10px 0; border-radius: 6px;">
+        <h4>${result.algorithm} Results</h4>
+        <p><strong>Selected ${result.items.length} items:</strong></p>
+        <ul>
+    `;
+    
+    result.items.forEach(item => {
+      const sizeLabel = item.size === 1 ? 'S' : item.size === 2 ? 'M' : item.size === 4 ? 'L' : 'XL';
+      html += `<li>${item.name} - ${item.weight}kg, ${sizeLabel}, Priority ${item.priority}</li>`;
+    });
+    
+    const totalValue = result.totalValue || result.items.reduce((sum, item) => sum + item.priority, 0);
+    
+    html += `
+        </ul>
+        <p><strong>Total:</strong> ${result.totalWeight.toFixed(1)}kg, ${result.totalSize} units, ${totalValue} priority points</p>
+        <p><strong>Execution Time:</strong> ${result.executionTime.toFixed(2)}ms</p>
+      </div>
+    `;
   });
   
+  // Add comparison if multiple results
+  if (results.length > 1) {
+    const greedyResult = results.find(r => r.algorithm === 'Greedy');
+    const dynamicResult = results.find(r => r.algorithm === 'Dynamic Programming');
+    
+    if (greedyResult && dynamicResult) {
+      const valueDiff = dynamicResult.totalValue - greedyResult.totalValue;
+      const timeDiff = dynamicResult.executionTime - greedyResult.executionTime;
+      
+      html += `
+        <div style="background-color: rgba(255, 165, 0, 0.2); padding: 15px; margin: 10px 0; border-radius: 6px; border: 2px solid #ffaa00;">
+          <h4>📊 Comparison</h4>
+          <p><strong>Value Difference:</strong> Dynamic Programming found ${valueDiff > 0 ? '+' + valueDiff : valueDiff} more priority points</p>
+          <p><strong>Speed Difference:</strong> Greedy was ${timeDiff.toFixed(2)}ms faster</p>
+          <p><strong>Efficiency:</strong> ${valueDiff > 0 ? 'Dynamic Programming found a better solution!' : 'Both algorithms found the same optimal solution!'}</p>
+        </div>
+      `;
+    }
+  }
+  
+  // Add apply button for single results or best result for comparisons
+  const bestResult = results.length === 1 ? results[0] : 
+    results.reduce((best, current) => 
+      (current.totalValue || current.items.reduce((sum, item) => sum + item.priority, 0)) > 
+      (best.totalValue || best.items.reduce((sum, item) => sum + item.priority, 0)) ? current : best
+    );
+  
   html += `
-      </ul>
-      <p><strong>Total:</strong> ${result.totalWeight.toFixed(1)}kg, ${result.totalSize} units</p>
-      <div style="margin-top: 15px;">
-        <button onclick="applyOptimization()" style="background-color: #2196F3; margin-right: 10px;">
-          📦 Apply to Sam's Load
-        </button>
-        <button onclick="clearResults()" style="background-color: #666;">
-          Clear Results
-        </button>
-      </div>
+    <div style="margin-top: 15px;">
+      <button onclick="applyOptimization()" style="background-color: #2196F3; margin-right: 10px;">
+        📦 Apply ${bestResult.algorithm} Results
+      </button>
+      <button onclick="clearResults()" style="background-color: #666;">
+        Clear Results
+      </button>
     </div>
   `;
   
   document.getElementById('results').innerHTML = html;
   
-  // Store the result globally so applyOptimization can access it
-  window.lastOptimizationResult = result;
+  // Store the best result for applying
+  window.lastOptimizationResult = bestResult;
 }
 
 // Update calculations when values change
