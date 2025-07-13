@@ -897,7 +897,7 @@ function calculateCarryingCapacity(totalWeight, backpackSize, bodySlotCount) {
   const baseCapacity = parseInt(document.getElementById('baseCapacity').value) || 120;
   const gearWeight = parseFloat(document.getElementById('gearWeight').value) || 0;
   const chiraliumCrystals = parseInt(document.getElementById('chiraliumCrystals').value) || 0;
-  const chiraliumBoost = Math.floor(chiraliumCrystals / 1000 * 10) / 10;
+  const chiraliumBoost = Math.min(50, Math.floor(chiraliumCrystals / 1000 * 10) / 10); // Capped at 50kg
   const safetyBuffer = parseFloat(document.getElementById('safetyBuffer').value);
   
   // UPDATED: Subtract suit weight instead of adding bonus
@@ -956,8 +956,8 @@ function getRemainingCapacity() {
   const suitConfig = suitConfigurations[suitType] || suitConfigurations['standard'];
   const baseCapacity = parseInt(document.getElementById('baseCapacity').value) || 120;
   const gearWeight = parseFloat(document.getElementById('gearWeight').value) || 0;
-  const chiraliumCrystals = parseInt(document.getElementById('chiraliumCrystals').value) || 0;
-  const chiraliumBoost = Math.floor(chiraliumCrystals / 1000 * 10) / 10;
+const chiraliumCrystals = parseInt(document.getElementById('chiraliumCrystals').value) || 0;
+const chiraliumBoost = Math.min(50, Math.floor(chiraliumCrystals / 1000 * 10) / 10);
   
   // UPDATED: Subtract suit weight instead of adding bonus
   const maxWeight = baseCapacity - suitConfig.weight - gearWeight + chiraliumBoost;
