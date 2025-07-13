@@ -10,13 +10,12 @@ npm start
 
 # Carrying Capacity (from game UI):
 - Input the KG value as shown in the Terminal UI.
-- This is Sam's maximum weight carrying capcaity.
+    - This is Sam's maximum weight carrying capcaity.
 
 
 # Additional Gear Weight:
 - From either the Private Locker or the Cargo Management UI
-- Any gear, tools, equipment, etc. not listed in "Carried on Back" or "Attached to Suit"
-- (ignore anything stored in the locker or "Not Carried")
+- Any gear, tools, equipment, etc. not listed in "Carried on Back" or "Attached to Suit" (ignore anything stored in the locker or "Not Carried")
 - Sum up the weights for these items and input as a positive number
 - This value will be subtracted from Sam's maximum weight capacity
 
@@ -37,5 +36,5 @@ npm start
 # Credits:
 - Background image was shared by スーパー初心者 Super Newb on Steam
 - A huge THANK YOU! to Mike Fay @ https://mikefay.info/wiki/index.php?title=Game-Death-Stranding-Loads
-    - Thanks to this wonderful rescource, we were able to back check our own findings
-    - or use his research to flesh out app capabilities for things we have not reached in game yet
+    - Thanks to this wonderful rescource, we were able to back check our own findings or use his research to flesh out app capabilities for things we have not reached in game yet
+- If you would like to check out the app without pulling the repo and creating your own environment, head to https://loristalter.com/cargo-optimizer/
