@@ -9,8 +9,8 @@
       margin: 0;
       padding: 0;
       background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1)),
-                  url('../assets/ladderoverchasm.jpg') center/cover fixed;
-                  /* url('ladderoverchasm.jpg') center/cover fixed; */
+                  /* url('../assets/ladderoverchasm.jpg') center/cover fixed; */
+                  url('ladderoverchasm.jpg') center/cover fixed;
       color: #ffffff;
       min-height: 100vh;
     }
@@ -157,18 +157,19 @@
         <label>Suit Configuration:
           <select id="suitType" onchange="applySuitConfiguration()">
             <option value="standard">Standard Suit</option>
-            <option value="power-1">Power Skeleton Lv.1 (+10kg)</option>
-            <option value="power-2">Power Skeleton Lv.2 (+20kg)</option>
-            <option value="power-3">Power Skeleton Lv.3 (+30kg)</option>
-            <option value="speed-1">Speed Skeleton Lv.1 (+5kg)</option>
-            <option value="speed-2">Speed Skeleton Lv.2 (+10kg)</option>
-            <option value="speed-3">Speed Skeleton Lv.3 (+15kg)</option>
-            <option value="all-terrain">All-Terrain Skeleton (+25kg)</option>
+            <option value="power-1">Power Skeleton Lv.1</option>
+            <option value="power-2">Power Skeleton Lv.2</option>
+            <option value="power-3">Power Skeleton Lv.3</option>
+            <option value="speed-1">Speed Skeleton Lv.1</option>
+            <option value="speed-2">Speed Skeleton Lv.2</option>
+            <option value="speed-3">Speed Skeleton Lv.3</option>
+            <option value="all-terrain-1">All-Terrain Skeleton Lv.1</option>
+            <option value="all-terrain-2">All-Terrain Skeleton Lv.2</option>
+            <option value="all-terrain-3">All-Terrain Skeleton Lv.3</option>
             <option value="hazmat">Hazmat Suit (No body slots)</option>
-            <option value="custom">Custom Configuration</option>
           </select>
         </label>
-        <label>Base Carrying Capacity: <input type="number" id="baseCapacity" value="120" /></label>
+        <label>Base Carrying Capacity (from game UI): <input type="number" id="baseCapacity" value="120" /></label>
         <label>Additional Gear Weight: <input type="number" step="0.1" id="gearWeight" value="0" placeholder="Tools, weapons..." /></label>
         <label>Chiralium Crystals: <input type="number" id="chiraliumCrystals" value="0" placeholder="Total crystals carried" /></label>
         <label>Safety Buffer: 
@@ -185,7 +186,6 @@
         <div id="chiralium-boost" style="margin-top: 5px; color: #00ccff;"></div>
         <div id="effective-capacity" style="margin-top: 10px; font-weight: bold; color: #4CAF50;"></div>
       </div>
-
 
       <div class="section">
         <h2>Priority Legend</h2>
@@ -358,89 +358,82 @@
 </body>
 </html>
 
+<!-------------------------------THE END OF HTML CODE AND THE THE BEGINNING OF SCRIPT CODE-------------------------------------------->
+
+
 <script>
+// -----------------------------------------------------GLOBAL VARIABLES / DATA--------------------------------------------------------
 // Global arrays to track current cargo
-let currentBackpackItems = [];   /* keep */
+let currentBackpackItems = [];
 let currentBodySlotItems = {
   leftArm: null,
   rightArm: null,
   leftLeg: null,
   rightLeg: null
-}; /* keep */
+};
 
-function updateCurrentLoad() {
-  // Calculate totals from backpack items
-  const backpackWeight = currentBackpackItems.reduce((sum, item) => sum + (item.weight || 0), 0);
-  const backpackSize = currentBackpackItems.reduce((sum, item) => sum + (item.size || 0), 0);
-  
-  // Calculate totals from body slot items
-  const bodySlotWeight = Object.values(currentBodySlotItems)
-    .filter(item => item !== null)
-    .reduce((sum, item) => sum + (item.weight || 0), 0);
-  
-  const bodySlotCount = Object.values(currentBodySlotItems).filter(item => item !== null).length;
-  
-  // Get available body slots based on suit
-  const suitType = document.getElementById('suitType').value;
-  const suitConfig = suitConfigurations[suitType] || suitConfigurations['standard'];
-  const availableBodySlots = Object.values(suitConfig.slots).filter(enabled => enabled).length;
-  
-  // Total weight includes both backpack AND body slot items
-  const totalWeight = backpackWeight + bodySlotWeight;
-  const totalSize = backpackSize + bodySlotCount;
-  
-  // Update summary display
-  const summary = document.getElementById('current-load-summary');
-  summary.innerHTML = `
-    <h4>Current Load Summary:</h4>
-    <p><strong>Backpack:</strong> ${currentBackpackItems.length} items, ${backpackWeight.toFixed(1)}kg, ${backpackSize} units</p>
-    <p><strong>Body Slots:</strong> ${bodySlotCount}/${availableBodySlots} occupied, ${bodySlotWeight.toFixed(1)}kg</p>
-    <p><strong>Total Weight:</strong> ${totalWeight.toFixed(1)}kg</p>
-    <p><strong>Total Size:</strong> ${totalSize} units</p>
-  `;
-  
-  // Calculate capacity with the correct total weight
-  calculateCarryingCapacity(totalWeight, backpackSize, bodySlotCount);
-}
+// Suit configuration data
+const suitConfigurations = {
+  'standard': {
+    name: 'Standard Suit',
+    weight: 0,
+    slots: { leftArm: true, rightArm: true, leftLeg: true, rightLeg: true }
+  },
+  'power-1': {
+    name: 'Power Skeleton Lv.1',
+    weight: 10, // weight of the skeleton itself
+    slots: { leftArm: true, rightArm: true, leftLeg: false, rightLeg: false }
+  },
+  'power-2': {
+    name: 'Power Skeleton Lv.2',
+    weight: 8,
+    slots: { leftArm: true, rightArm: true, leftLeg: false, rightLeg: false }
+  },
+  'power-3': {
+    name: 'Power Skeleton Lv.3',
+    weight: 6,
+    slots: { leftArm: true, rightArm: true, leftLeg: false, rightLeg: false }
+  },
+  'speed-1': {
+    name: 'Speed Skeleton Lv.1',
+    weight: 6,
+    slots: { leftArm: true, rightArm: true, leftLeg: true, rightLeg: true }
+  },
+  'speed-2': {
+    name: 'Speed Skeleton Lv.2',
+    weight: 4,
+    slots: { leftArm: true, rightArm: true, leftLeg: true, rightLeg: true }
+  },
+  'speed-3': {
+    name: 'Speed Skeleton Lv.3',
+    weight: 2,
+    slots: { leftArm: true, rightArm: true, leftLeg: true, rightLeg: true }
+  },
+  'all-terrain-1': {
+    name: 'All-Terrain Skeleton Lv.1',
+    weight: 8,
+    slots: { leftArm: true, rightArm: true, leftLeg: true, rightLeg: true }
+  },
+    'all-terrain-2': {
+    name: 'All-Terrain Skeleton Lv.2',
+    weight: 6,
+    slots: { leftArm: true, rightArm: true, leftLeg: true, rightLeg: true }
+  },
+    'all-terrain-3': {
+    name: 'All-Terrain Skeleton Lv.3',
+    weight: 4,
+    slots: { leftArm: true, rightArm: true, leftLeg: true, rightLeg: true }
+  },
+  'hazmat': {
+    name: 'Hazmat Suit',
+    weight: 0,
+    slots: { leftArm: false, rightArm: false, leftLeg: false, rightLeg: false }
+  },
+};
+// -----------------------------------------------------END GLOBAL VARIABLES / DATA--------------------------------------------------------
 
 
-function toggleBodySlot(slot) {
-  const status = document.getElementById(slot + 'Status').value;
-  const details = document.getElementById(slot + 'Details');
-  
-  if (status === 'occupied') {
-    details.style.display = 'block';
-  } else {
-    details.style.display = 'none';
-    // Clear the input fields when set to empty
-    document.getElementById(slot + 'Name').value = '';
-    document.getElementById(slot + 'Weight').value = '';
-    document.getElementById(slot + 'Priority').value = '';
-    currentBodySlotItems[slot] = null;
-  }
-  updateBodySlot(slot);
-} /* keep */
-
-function updateBodySlot(slot) {
-  const status = document.getElementById(slot + 'Status').value;
-  
-  if (status === 'occupied') {
-    const name = document.getElementById(slot + 'Name').value || 'Unnamed Item';
-    const weight = parseFloat(document.getElementById(slot + 'Weight').value) || 0;
-    const priority = parseInt(document.getElementById(slot + 'Priority').value) || 3;
-    
-    currentBodySlotItems[slot] = {
-      name: name,
-      weight: weight,
-      size: 1, // Always 1 for body slots
-      priority: priority
-    };
-  } else {
-    currentBodySlotItems[slot] = null;
-  }
-  
-  updateCurrentLoad();
-} /* keep */
+// -----------------------------------------------------UI MANAGEMENT FUNCTIONS------------------------------------------------------------
 
 function addBackpackItem() {
   const item = {
@@ -449,7 +442,7 @@ function addBackpackItem() {
     weight: 0,
     size: 1,
     priority: 3
-  }; /* keep */
+  };
   
   currentBackpackItems.push(item);
   renderBackpackItems();
@@ -458,7 +451,7 @@ function addBackpackItem() {
 
 function renderBackpackItems() {
   const container = document.getElementById('backpack-items');
-  container.innerHTML = ''; /* keep */
+  container.innerHTML = '';
   
   currentBackpackItems.forEach((item, index) => {
     const itemDiv = document.createElement('div');
@@ -486,67 +479,94 @@ function updateBackpackItem(index, field, value) {
     currentBackpackItems[index][field] = value;
     updateCurrentLoad();
   }
-} /* keep */
+}
 
 function removeBackpackItem(index) {
   currentBackpackItems.splice(index, 1);
   renderBackpackItems();
   updateCurrentLoad();
-} /* keep */
+}
 
-// Suit configuration data
-const suitConfigurations = {
-  'standard': {
-    name: 'Standard Suit',
-    weightBonus: 0,
-    slots: { leftArm: true, rightArm: true, leftLeg: true, rightLeg: true }
-  },
-  'power-1': {
-    name: 'Power Skeleton Lv.1',
-    weightBonus: 10,
-    slots: { leftArm: true, rightArm: true, leftLeg: false, rightLeg: false }
-  },
-  'power-2': {
-    name: 'Power Skeleton Lv.2',
-    weightBonus: 20,
-    slots: { leftArm: true, rightArm: true, leftLeg: false, rightLeg: false }
-  },
-  'power-3': {
-    name: 'Power Skeleton Lv.3',
-    weightBonus: 30,
-    slots: { leftArm: true, rightArm: true, leftLeg: false, rightLeg: false }
-  },
-  'speed-1': {
-    name: 'Speed Skeleton Lv.1',
-    weightBonus: 5,
-    slots: { leftArm: false, rightArm: false, leftLeg: true, rightLeg: true }
-  },
-  'speed-2': {
-    name: 'Speed Skeleton Lv.2',
-    weightBonus: 10,
-    slots: { leftArm: false, rightArm: false, leftLeg: true, rightLeg: true }
-  },
-  'speed-3': {
-    name: 'Speed Skeleton Lv.3',
-    weightBonus: 15,
-    slots: { leftArm: false, rightArm: false, leftLeg: true, rightLeg: true }
-  },
-  'all-terrain': {
-    name: 'All-Terrain Skeleton',
-    weightBonus: 25,
-    slots: { leftArm: true, rightArm: true, leftLeg: true, rightLeg: true }
-  },
-  'hazmat': {
-    name: 'Hazmat Suit',
-    weightBonus: 0,
-    slots: { leftArm: false, rightArm: false, leftLeg: false, rightLeg: false }
-  },
-  'custom': {
-    name: 'Custom Configuration',
-    weightBonus: 0,
-    slots: { leftArm: true, rightArm: true, leftLeg: true, rightLeg: true }
+function toggleBodySlot(slot) {
+  const status = document.getElementById(slot + 'Status').value;
+  const details = document.getElementById(slot + 'Details');
+  
+  if (status === 'occupied') {
+    details.style.display = 'block';
+  } else {
+    details.style.display = 'none';
+    // Clear the input fields when set to empty
+    document.getElementById(slot + 'Name').value = '';
+    document.getElementById(slot + 'Weight').value = '';
+    document.getElementById(slot + 'Priority').value = '';
+    currentBodySlotItems[slot] = null;
   }
-}; /* keep */
+  updateBodySlot(slot);
+}
+
+function updateBodySlot(slot) {
+  const status = document.getElementById(slot + 'Status').value;
+  
+  if (status === 'occupied') {
+    const name = document.getElementById(slot + 'Name').value || 'Unnamed Item';
+    const weight = parseFloat(document.getElementById(slot + 'Weight').value) || 0;
+    const priority = parseInt(document.getElementById(slot + 'Priority').value) || 3;
+    
+    currentBodySlotItems[slot] = {
+      name: name,
+      weight: weight,
+      size: 1, // Always 1 for body slots
+      priority: priority
+    };
+  } else {
+    currentBodySlotItems[slot] = null;
+  }
+  
+  updateCurrentLoad();
+}
+
+function addCargoItem() {
+  const container = document.getElementById('available-cargo');
+  const itemId = Date.now() + Math.random(); // Unique ID for tracking
+  const newItem = document.createElement('div');
+  newItem.className = 'cargo-item';
+  newItem.setAttribute('data-item-id', itemId);
+  newItem.innerHTML = `
+    <label>Item Name: <input type="text" placeholder="Cargo Item" /></label>
+    <label>Weight: <input type="number" step="0.1" placeholder="10.0" /></label>
+    <label>Size: 
+      <select class="cargo-size">
+        <option value="1">S (1 unit)</option>
+        <option value="2">M (2 units)</option>
+        <option value="4">L (4 units)</option>
+        <option value="6">XL (6 units)</option>
+      </select>
+    </label>
+    <label>Priority: <input type="number" min="1" max="5" placeholder="3" /></label>
+    <button onclick="removeAvailableItem('${itemId}')" style="background-color: #ff4444;">Remove</button>
+  `;
+  container.appendChild(newItem);
+}
+
+function removeAvailableItem(itemId) {
+  const item = document.querySelector(`[data-item-id="${itemId}"]`);
+  if (item) {
+    item.remove();
+  }
+}
+
+function removeAvailableItemByIndex(index) {
+  const cargoItems = document.querySelectorAll('#available-cargo .cargo-item');
+  // Find the item that was at the original index when optimization ran
+  if (cargoItems[index]) {
+    cargoItems[index].remove();
+  }
+}
+
+// -----------------------------------------------------END UI MANAGEMENT FUNCTIONS---------------------------------------------------------
+
+
+// -----------------------------------------------------SUIT SYSTEM FUNCTIONS---------------------------------------------------------------
 
 function applySuitConfiguration() {
   const suitType = document.getElementById('suitType').value;
@@ -628,7 +648,7 @@ function showSuitChangeWarning(cargoToLose, config, suitType) {
             margin: 5px; 
             border-radius: 4px; 
             cursor: pointer;
-          ">📋 Move to Available</button>
+          ">📋 Move to Vicinity</button>
           <button onclick="proceedWithLoss('${suitType}')" style="
             background-color: #ff4444; 
             color: white; 
@@ -826,25 +846,10 @@ function clearBodySlotUI(slot) {
   document.getElementById(slot + 'Priority').value = '';
 }
 
-// Update the original function to store previous value
-document.getElementById('suitType').addEventListener('change', function() {
-  // Store current value as previous before change
-  if (!this.hasAttribute('data-previous')) {
-    this.setAttribute('data-previous', 'standard');
-  } else {
-    this.setAttribute('data-previous', this.value);
-  }
-});
+// -----------------------------------------------------END SUIT SYSTEM---------------------------------------------------------------------
 
-// Initialize previous suit value
-window.addEventListener('load', function() {
-  document.getElementById('suitType').setAttribute('data-previous', 'standard');
-  updateCurrentLoad();
-  loadAutoSave();
-});
+//------------------------------------------------------CORE CALCULATION FUNCTIONS----------------------------------------------------------
 
-// Update the capacity calculation to include suit bonus
-/* keep */
 function updateCurrentLoad() {
   // Calculate totals from backpack items
   const backpackWeight = currentBackpackItems.reduce((sum, item) => sum + (item.weight || 0), 0);
@@ -857,6 +862,11 @@ function updateCurrentLoad() {
   
   const bodySlotCount = Object.values(currentBodySlotItems).filter(item => item !== null).length;
   
+  // Get available body slots based on suit
+  const suitType = document.getElementById('suitType').value;
+  const suitConfig = suitConfigurations[suitType] || suitConfigurations['standard'];
+  const availableBodySlots = Object.values(suitConfig.slots).filter(enabled => enabled).length;
+  
   // Total weight includes both backpack AND body slot items
   const totalWeight = backpackWeight + bodySlotWeight;
   const totalSize = backpackSize + bodySlotCount;
@@ -866,14 +876,14 @@ function updateCurrentLoad() {
   summary.innerHTML = `
     <h4>Current Load Summary:</h4>
     <p><strong>Backpack:</strong> ${currentBackpackItems.length} items, ${backpackWeight.toFixed(1)}kg, ${backpackSize} units</p>
-    <p><strong>Body Slots:</strong> ${bodySlotCount}/4 occupied, ${bodySlotWeight.toFixed(1)}kg</p>
+    <p><strong>Body Slots:</strong> ${bodySlotCount}/${availableBodySlots} occupied, ${bodySlotWeight.toFixed(1)}kg</p>
     <p><strong>Total Weight:</strong> ${totalWeight.toFixed(1)}kg</p>
     <p><strong>Total Size:</strong> ${totalSize} units</p>
   `;
   
-  // Calculate capacity with suit bonus
+  // Calculate capacity with the correct total weight
   calculateCarryingCapacity(totalWeight, backpackSize, bodySlotCount);
-} /* keep */
+}
 
 function calculateCarryingCapacity(totalWeight, backpackSize, bodySlotCount) {
   // Get suit configuration
@@ -890,7 +900,8 @@ function calculateCarryingCapacity(totalWeight, backpackSize, bodySlotCount) {
   const chiraliumBoost = Math.floor(chiraliumCrystals / 1000 * 10) / 10;
   const safetyBuffer = parseFloat(document.getElementById('safetyBuffer').value);
   
-  const actualMaxWeight = baseCapacity + suitConfig.weightBonus + chiraliumBoost - gearWeight;
+  // UPDATED: Subtract suit weight instead of adding bonus
+  const actualMaxWeight = baseCapacity - suitConfig.weight - gearWeight + chiraliumBoost;
   const effectiveMaxWeight = actualMaxWeight - safetyBuffer;
   
   // Use the passed parameters
@@ -900,7 +911,7 @@ function calculateCarryingCapacity(totalWeight, backpackSize, bodySlotCount) {
   
   // Update displays
   document.getElementById('suit-bonus').innerHTML = 
-    `Suit Bonus: +${suitConfig.weightBonus}kg (${suitConfig.name})`;
+    `Suit Weight: -${suitConfig.weight}kg (${suitConfig.name})`;
   
   document.getElementById('chiralium-boost').innerHTML = 
     `Chiralium Boost: +${chiraliumBoost.toFixed(1)}kg (${chiraliumCrystals} crystals)`;
@@ -931,75 +942,6 @@ function calculateCarryingCapacity(totalWeight, backpackSize, bodySlotCount) {
   `;
 }
 
-/* keep */
-function addCargoItem() {
-  const container = document.getElementById('available-cargo');
-  const itemId = Date.now() + Math.random(); // Unique ID for tracking
-  const newItem = document.createElement('div');
-  newItem.className = 'cargo-item';
-  newItem.setAttribute('data-item-id', itemId);
-  newItem.innerHTML = `
-    <label>Item Name: <input type="text" placeholder="Cargo Item" /></label>
-    <label>Weight: <input type="number" step="0.1" placeholder="10.0" /></label>
-    <label>Size: 
-      <select class="cargo-size">
-        <option value="1">S (1 unit)</option>
-        <option value="2">M (2 units)</option>
-        <option value="4">L (4 units)</option>
-        <option value="6">XL (6 units)</option>
-      </select>
-    </label>
-    <label>Priority: <input type="number" min="1" max="5" placeholder="3" /></label>
-    <button onclick="removeAvailableItem('${itemId}')" style="background-color: #ff4444;">Remove</button>
-  `;
-  container.appendChild(newItem);
-} /* keep */
-
-/* keep */
-function removeAvailableItem(itemId) {
-  const item = document.querySelector(`[data-item-id="${itemId}"]`);
-  if (item) {
-    item.remove();
-  }
-} /* keep */
-
-function optimizeCargo() {
-  const strategy = document.getElementById('greedyStrategy').value;
-  const availableItems = getAvailableCargoItems();
-  
-  if (availableItems.length === 0) {
-    document.getElementById('results').innerHTML = '<p style="color: #ff4444;">No available cargo items to optimize!</p>';
-    return;
-  }
-  
-  // Calculate remaining capacity
-  const capacity = getRemainingCapacity();
-  
-  // Run greedy optimization
-  const result = greedyOptimization(availableItems, capacity, strategy);
-  
-  // Display results
-  displayOptimizationResults(result, strategy);
-}
-
-function getAvailableCargoItems() {
-  const items = [];
-  const cargoItems = document.querySelectorAll('#available-cargo .cargo-item');
-  
-  cargoItems.forEach((item, index) => {
-    const name = item.querySelector('input[type="text"]').value || `Item ${index + 1}`;
-    const weight = parseFloat(item.querySelector('input[type="number"]').value) || 0;
-    const size = parseInt(item.querySelector('.cargo-size').value) || 1;
-    const priority = parseInt(item.querySelector('input[min="1"]').value) || 3;
-    
-    if (weight > 0) { // Only include items with weight
-      items.push({ name, weight, size, priority, index });
-    }
-  });
-  
-  return items;
-}
-
 function getRemainingCapacity() {
   // Calculate current load
   const backpackWeight = currentBackpackItems.reduce((sum, item) => sum + (item.weight || 0), 0);
@@ -1009,7 +951,7 @@ function getRemainingCapacity() {
     .reduce((sum, item) => sum + (item.weight || 0), 0);
   const bodySlotCount = Object.values(currentBodySlotItems).filter(item => item !== null).length;
   
-  // Calculate capacity with suit bonus
+  // Calculate capacity with suit weight
   const suitType = document.getElementById('suitType').value;
   const suitConfig = suitConfigurations[suitType] || suitConfigurations['standard'];
   const baseCapacity = parseInt(document.getElementById('baseCapacity').value) || 120;
@@ -1017,7 +959,8 @@ function getRemainingCapacity() {
   const chiraliumCrystals = parseInt(document.getElementById('chiraliumCrystals').value) || 0;
   const chiraliumBoost = Math.floor(chiraliumCrystals / 1000 * 10) / 10;
   
-  const maxWeight = baseCapacity + suitConfig.weightBonus + chiraliumBoost - gearWeight;
+  // UPDATED: Subtract suit weight instead of adding bonus
+  const maxWeight = baseCapacity - suitConfig.weight - gearWeight + chiraliumBoost;
   const maxBackpackSize = 28;
   
   // Calculate available body slots based on suit
@@ -1036,6 +979,11 @@ function getRemainingCapacity() {
     safetyBuffer: safetyBuffer
   };
 }
+
+//------------------------------------------------------END CORE CALCULATION FUNCTIONS-------------------------------------------------------
+
+
+//------------------------------------------------------OPTIMIZATION FUNCTIONS---------------------------------------------------------------
 
 function toggleStrategyOptions() {
   const algorithm = document.getElementById('algorithmChoice').value;
@@ -1094,6 +1042,74 @@ function optimizeCargo() {
   
   // Display results
   displayOptimizationResults(results);
+}
+
+function getAvailableCargoItems() {
+  const items = [];
+  const cargoItems = document.querySelectorAll('#available-cargo .cargo-item');
+  
+  cargoItems.forEach((item, index) => {
+    const name = item.querySelector('input[type="text"]').value || `Item ${index + 1}`;
+    const weight = parseFloat(item.querySelector('input[type="number"]').value) || 0;
+    const size = parseInt(item.querySelector('.cargo-size').value) || 1;
+    const priority = parseInt(item.querySelector('input[min="1"]').value) || 3;
+    
+    if (weight > 0) { // Only include items with weight
+      items.push({ name, weight, size, priority, index });
+    }
+  });
+  
+  return items;
+}
+
+function greedyOptimization(items, capacity, strategy) {
+  // Sort items based on strategy
+  let sortedItems = [...items];
+  
+  switch (strategy) {
+    case 'value-weight':
+      sortedItems.sort((a, b) => (b.priority / b.weight) - (a.priority / a.weight));
+      break;
+    case 'priority-first':
+      sortedItems.sort((a, b) => {
+        if (b.priority !== a.priority) return b.priority - a.priority;
+        return (b.priority / b.weight) - (a.priority / a.weight); // Tiebreaker
+      });
+      break;
+    case 'size-efficiency':
+      sortedItems.sort((a, b) => (b.priority / b.size) - (a.priority / a.size));
+      break;
+  }
+  
+  const selected = [];
+  let currentWeight = 0;
+  let currentBackpackSize = 0;
+  let currentBodySlots = 0;
+  
+  for (const item of sortedItems) {
+    const fitsWeight = currentWeight + item.weight <= capacity.remainingWeight;
+    const fitsBackpack = item.size === 1 ? 
+      (currentBodySlots < capacity.remainingBodySlots || currentBackpackSize + item.size <= capacity.remainingBackpackSize) :
+      currentBackpackSize + item.size <= capacity.remainingBackpackSize;
+    
+    if (fitsWeight && fitsBackpack) {
+      selected.push(item);
+      currentWeight += item.weight;
+      
+      if (item.size === 1 && currentBodySlots < capacity.remainingBodySlots) {
+        currentBodySlots++;
+      } else {
+        currentBackpackSize += item.size;
+      }
+    }
+  }
+  
+  return {
+    items: selected,
+    totalWeight: currentWeight,
+    totalSize: currentBackpackSize + currentBodySlots,
+    strategy: strategy
+  };
 }
 
 function dynamicOptimization(items, capacity) {
@@ -1166,56 +1182,6 @@ function dynamicOptimization(items, capacity) {
     totalSize: totalSize,
     totalValue: totalValue,
     algorithm: 'Dynamic Programming'
-  };
-}
-
-function greedyOptimization(items, capacity, strategy) {
-  // Sort items based on strategy
-  let sortedItems = [...items];
-  
-  switch (strategy) {
-    case 'value-weight':
-      sortedItems.sort((a, b) => (b.priority / b.weight) - (a.priority / a.weight));
-      break;
-    case 'priority-first':
-      sortedItems.sort((a, b) => {
-        if (b.priority !== a.priority) return b.priority - a.priority;
-        return (b.priority / b.weight) - (a.priority / a.weight); // Tiebreaker
-      });
-      break;
-    case 'size-efficiency':
-      sortedItems.sort((a, b) => (b.priority / b.size) - (a.priority / a.size));
-      break;
-  }
-  
-  const selected = [];
-  let currentWeight = 0;
-  let currentBackpackSize = 0;
-  let currentBodySlots = 0;
-  
-  for (const item of sortedItems) {
-    const fitsWeight = currentWeight + item.weight <= capacity.remainingWeight;
-    const fitsBackpack = item.size === 1 ? 
-      (currentBodySlots < capacity.remainingBodySlots || currentBackpackSize + item.size <= capacity.remainingBackpackSize) :
-      currentBackpackSize + item.size <= capacity.remainingBackpackSize;
-    
-    if (fitsWeight && fitsBackpack) {
-      selected.push(item);
-      currentWeight += item.weight;
-      
-      if (item.size === 1 && currentBodySlots < capacity.remainingBodySlots) {
-        currentBodySlots++;
-      } else {
-        currentBackpackSize += item.size;
-      }
-    }
-  }
-  
-  return {
-    items: selected,
-    totalWeight: currentWeight,
-    totalSize: currentBackpackSize + currentBodySlots,
-    strategy: strategy
   };
 }
 
@@ -1295,58 +1261,6 @@ function displayOptimizationResults(results) {
   window.lastOptimizationResult = bestResult;
 }
 
-// Update calculations when values change
-document.addEventListener('input', function() {
-  updateCurrentLoad();
-});
-
-// Calculate on page load
-window.addEventListener('load', function() {
-  updateCurrentLoad();
-});
-
-// Add this to your initialization
-document.addEventListener('DOMContentLoaded', function() {
-  // Handle when user finishes typing (clicks away or presses Enter)
-  document.addEventListener('blur', function(e) {
-    if (e.target.type === 'number' && e.target.min && e.target.max) {
-      validateNumberInput(e.target);
-    }
-  }, true);
-  
-  // Handle when user changes the value and moves on
-  document.addEventListener('change', function(e) {
-    if (e.target.type === 'number' && e.target.min && e.target.max) {
-      validateNumberInput(e.target);
-    }
-  });
-});
-
-function validateNumberInput(input) {
-  const min = parseInt(input.min);
-  const max = parseInt(input.max);
-  let value = parseInt(input.value);
-  
-  // Handle empty or invalid input
-  if (isNaN(value)) {
-    if (input.placeholder) {
-      value = parseInt(input.placeholder) || min;
-    } else {
-      value = min;
-    }
-  }
-  
-  // Clamp to valid range
-  if (value < min) value = min;
-  if (value > max) value = max;
-  
-  // Update the input field
-  input.value = value;
-  
-  // Trigger any change handlers
-  input.dispatchEvent(new Event('input', { bubbles: true }));
-}
-
 function applyOptimization() {
   if (!window.lastOptimizationResult) {
     alert('No optimization results to apply!');
@@ -1387,14 +1301,6 @@ function applyOptimization() {
       ✅ Optimization applied! ${result.items.length} items added to Sam's load and removed from available cargo.
     </p>
   `;
-}
-
-function removeAvailableItemByIndex(index) {
-  const cargoItems = document.querySelectorAll('#available-cargo .cargo-item');
-  // Find the item that was at the original index when optimization ran
-  if (cargoItems[index]) {
-    cargoItems[index].remove();
-  }
 }
 
 function addToBodySlot(item) {
@@ -1450,6 +1356,11 @@ function clearResults() {
   window.lastOptimizationResult = null;
 }
 
+//------------------------------------------------------END OPTIMIZATION FUNCTIONS-----------------------------------------------------------
+
+
+//------------------------------------------------------SAVE/LOAD FUNCTIONS------------------------------------------------------------------
+
 // Auto-save functionality
 function autoSave() {
   const gameState = createGameState();
@@ -1478,6 +1389,39 @@ function createGameState() {
       bodySlotCount: Object.values(currentBodySlotItems).filter(item => item !== null).length
     }
   };
+}
+
+// Load game state from parsed JSON
+function loadGameState(gameState) {
+  // Restore Sam's status
+  if (gameState.samStatus) {
+    document.getElementById('baseCapacity').value = gameState.samStatus.baseCapacity || 120;
+    document.getElementById('gearWeight').value = gameState.samStatus.gearWeight || 0;
+    document.getElementById('chiraliumCrystals').value = gameState.samStatus.chiraliumCrystals || 0;
+  }
+  
+  // Restore backpack items
+  currentBackpackItems = gameState.currentBackpackItems || [];
+  
+  // Restore body slot items
+  currentBodySlotItems = gameState.currentBodySlotItems || {
+    leftArm: null,
+    rightArm: null,
+    leftLeg: null,
+    rightLeg: null
+  };
+  
+  // Restore body slot UI
+  restoreBodySlots();
+  
+  // Restore available cargo
+  if (gameState.availableCargo) {
+    restoreAvailableCargo(gameState.availableCargo);
+  }
+  
+  // Update all displays
+  renderBackpackItems();
+  updateCurrentLoad();
 }
 
 // Save to numbered slot
@@ -1550,61 +1494,6 @@ function loadAutoSave() {
   }
 }
 
-// Enhanced clear all data
-function clearAllData() {
-  if (confirm('Are you sure you want to clear all data? This will also clear auto-save and all save slots.')) {
-    // Clear all arrays
-    currentBackpackItems = [];
-    currentBodySlotItems = {
-      leftArm: null,
-      rightArm: null,
-      leftLeg: null,
-      rightLeg: null
-    };
-    
-    // Reset form values
-    document.getElementById('baseCapacity').value = 120;
-    document.getElementById('gearWeight').value = 0;
-    document.getElementById('chiraliumCrystals').value = 0;
-    
-    // Clear available cargo
-    document.getElementById('available-cargo').innerHTML = '';
-    
-    // Clear results
-    document.getElementById('results').innerHTML = '';
-    
-    // Reset body slots
-    restoreBodySlots();
-    
-    // Clear localStorage
-    localStorage.removeItem('cargoOptimizer_autoSave');
-    localStorage.removeItem('cargoOptimizer_slot1');
-    localStorage.removeItem('cargoOptimizer_slot2');
-    localStorage.removeItem('cargoOptimizer_slot3');
-    
-    // Reset last saved display
-    document.getElementById('lastSaved').textContent = 'Never';
-    
-    // Update displays
-    renderBackpackItems();
-    updateCurrentLoad();
-    
-    alert('All data cleared!');
-  }
-}
-
-// Update existing event listeners to include auto-save
-document.addEventListener('input', function() {
-  updateCurrentLoad();
-  autoSave(); // Add this line
-});
-
-// Load auto-save when page loads
-window.addEventListener('load', function() {
-  updateCurrentLoad();
-  loadAutoSave(); // Add this line
-});
-
 // Download current state as JSON file
 function downloadSaveFile() {
   const gameState = {
@@ -1658,39 +1547,6 @@ function uploadSaveFile(event) {
   
   // Clear the file input so the same file can be loaded again
   event.target.value = '';
-}
-
-// Load game state from parsed JSON
-function loadGameState(gameState) {
-  // Restore Sam's status
-  if (gameState.samStatus) {
-    document.getElementById('baseCapacity').value = gameState.samStatus.baseCapacity || 120;
-    document.getElementById('gearWeight').value = gameState.samStatus.gearWeight || 0;
-    document.getElementById('chiraliumCrystals').value = gameState.samStatus.chiraliumCrystals || 0;
-  }
-  
-  // Restore backpack items
-  currentBackpackItems = gameState.currentBackpackItems || [];
-  
-  // Restore body slot items
-  currentBodySlotItems = gameState.currentBodySlotItems || {
-    leftArm: null,
-    rightArm: null,
-    leftLeg: null,
-    rightLeg: null
-  };
-  
-  // Restore body slot UI
-  restoreBodySlots();
-  
-  // Restore available cargo
-  if (gameState.availableCargo) {
-    restoreAvailableCargo(gameState.availableCargo);
-  }
-  
-  // Update all displays
-  renderBackpackItems();
-  updateCurrentLoad();
 }
 
 // Restore body slot UI elements
@@ -1750,9 +1606,8 @@ function restoreAvailableCargo(availableItems) {
   });
 }
 
-// Clear all data
 function clearAllData() {
-  if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+  if (confirm('Are you sure you want to clear all data? This will also clear auto-save and all save slots.')) {
     // Clear all arrays
     currentBackpackItems = [];
     currentBodySlotItems = {
@@ -1766,6 +1621,8 @@ function clearAllData() {
     document.getElementById('baseCapacity').value = 120;
     document.getElementById('gearWeight').value = 0;
     document.getElementById('chiraliumCrystals').value = 0;
+    document.getElementById('suitType').value = 'standard';
+    document.getElementById('safetyBuffer').value = '0.1';
     
     // Clear available cargo
     document.getElementById('available-cargo').innerHTML = '';
@@ -1776,6 +1633,18 @@ function clearAllData() {
     // Reset body slots
     restoreBodySlots();
     
+    // Clear localStorage
+    localStorage.removeItem('cargoOptimizer_autoSave');
+    localStorage.removeItem('cargoOptimizer_slot1');
+    localStorage.removeItem('cargoOptimizer_slot2');
+    localStorage.removeItem('cargoOptimizer_slot3');
+    
+    // Reset last saved display
+    document.getElementById('lastSaved').textContent = 'Never';
+    
+    // Apply suit configuration after reset
+    applySuitConfiguration();
+    
     // Update displays
     renderBackpackItems();
     updateCurrentLoad();
@@ -1783,4 +1652,79 @@ function clearAllData() {
     alert('All data cleared!');
   }
 }
+
+//------------------------------------------------------END SAVE/LOAD FUNCTIONS---------------------------------------------------------------
+
+
+//------------------------------------------------------INPUT VALIDATION FUNCTIONS------------------------------------------------------------
+
+function validateNumberInput(input) {
+  const min = parseInt(input.min);
+  const max = parseInt(input.max);
+  let value = parseInt(input.value);
+  
+  // Handle empty or invalid input
+  if (isNaN(value)) {
+    if (input.placeholder) {
+      value = parseInt(input.placeholder) || min;
+    } else {
+      value = min;
+    }
+  }
+  
+  // Clamp to valid range
+  if (value < min) value = min;
+  if (value > max) value = max;
+  
+  // Update the input field
+  input.value = value;
+  
+  // Trigger any change handlers
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+
+
+//------------------------------------------------------END INPUT VALIDATION FUNCTIONS--------------------------------------------------------
+
+
+//---------------------------------------------------EVENT LISTENERS---------------------------------------------------
+
+// Suit type change tracking (for cancel functionality)
+document.getElementById('suitType').addEventListener('change', function() {
+  // Store current value as previous before change
+  if (!this.hasAttribute('data-previous')) {
+    this.setAttribute('data-previous', 'standard');
+  } else {
+    this.setAttribute('data-previous', this.value);
+  }
+});
+
+// Auto-save on input changes
+document.addEventListener('input', function() {
+  updateCurrentLoad();
+  autoSave();
+});
+
+// Input validation on blur
+document.addEventListener('blur', function(e) {
+  if (e.target.type === 'number' && e.target.min && e.target.max) {
+    validateNumberInput(e.target);
+  }
+}, true);
+
+// Input validation on change
+document.addEventListener('change', function(e) {
+  if (e.target.type === 'number' && e.target.min && e.target.max) {
+    validateNumberInput(e.target);
+  }
+});
+
+// Page initialization
+window.addEventListener('load', function() {
+  document.getElementById('suitType').setAttribute('data-previous', 'standard');
+  updateCurrentLoad();
+  loadAutoSave();
+});
+
 </script> 
