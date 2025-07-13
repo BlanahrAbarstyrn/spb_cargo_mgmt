@@ -2,12 +2,10 @@
 npm start
 
 # Sam's Status:
-
 - Select the suit currently equipped.
-
-- Hazmat Suit - The suit Sam is wearing in the opening cut scenes of the game until he receives his first suit from Bridges.
-- Standard Suit - First suit received from Bridges (available in Sam's private room).
-- All other suits/skeletons are fabricated later in game.
+    - Hazmat Suit - The suit Sam is wearing in the opening cut scenes of the game until he receives his first suit from Bridges.
+    - Standard Suit - First suit received from Bridges (available in Sam's private room).
+    - All other suits/skeletons are fabricated later in game.
 
 
 # Carrying Capacity (from game UI):
