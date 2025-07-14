@@ -1,6 +1,3 @@
-# Start up web browser
-npm start
-
 # Sam's Status:
 - Select the suit currently equipped.
     - Hazmat Suit - The suit Sam is wearing in the opening cut scenes of the game until he receives his first suit from Bridges.
@@ -30,7 +27,7 @@ npm start
 # Safety Buffer:
 - Sam's ability to move and maneuver is severely impacted at or over maximum weight capacity
 - Select a buffer for the app to factor in when determining cargo optimization to prevent fully maxing out
-- The most conservative buffer is to not get within 60kg of max weight
+- The most conservative buffer is to not get within 60kg of max weight (Green "Safe Load Weight" status)
 
 
 # Credits:

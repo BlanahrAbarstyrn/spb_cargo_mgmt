@@ -325,32 +325,48 @@
           <button onclick="optimizeCargo()">🎯 Optimize Load</button>
           <div id="results" style="margin-top: 15px;"></div>
         </div>
-
-        <div class="section">
-          <h2>Save/Load Configuration</h2>
-  
-          <!-- Auto-save status -->
-          <div style="margin-bottom: 15px; padding: 10px; background-color: rgba(60, 60, 60, 0.8); border-radius: 4px;">
-            <div style="color: #4CAF50; margin-bottom: 5px;">
-              <small>✅ Auto-saved: <span id="lastSaved">Never</span></small>
-            </div>
-            <div style="color: #00ccff;">
-              <small>💾 Save Slots: 
-                <button onclick="saveToSlot(1)" style="padding: 4px 8px; margin: 2px;">Save 1</button>
-                <button onclick="loadFromSlot(1)" style="padding: 4px 8px; margin: 2px;">Load 1</button>
-                <button onclick="saveToSlot(2)" style="padding: 4px 8px; margin: 2px;">Save 2</button>
-                <button onclick="loadFromSlot(2)" style="padding: 4px 8px; margin: 2px;">Load 2</button>
-                <button onclick="saveToSlot(3)" style="padding: 4px 8px; margin: 2px;">Save 3</button>
-                <button onclick="loadFromSlot(3)" style="padding: 4px 8px; margin: 2px;">Load 3</button>
-              </small>
-            </div>
+      <div class="section">
+        <h2>Save/Load Configuration</h2>
+        
+        <!-- Auto-save status -->
+        <div style="margin-bottom: 15px; padding: 10px; background-color: rgba(60, 60, 60, 0.8); border-radius: 4px;">
+          <div style="color: #4CAF50; margin-bottom: 5px;">
+            <small>✅ Auto-saved: <span id="lastSaved">Never</span></small>
           </div>
-  
-          <!-- File-based options -->
-          <button onclick="downloadSaveFile()">⬇️ Download Save File</button>
-          <input type="file" id="uploadFile" accept=".json" onchange="uploadSaveFile(event)" style="display: none;">
-          <button onclick="document.getElementById('uploadFile').click()">⬆️ Upload Save File</button>
-          <button onclick="clearAllData()" style="background-color: #ff4444; margin-left: 10px;">🗑️ Clear All Data</button>
+          <div style="color: #00ccff;">
+            <small>💾 Save Slots: 
+              <button onclick="saveToSlot(1)" style="padding: 4px 8px; margin: 2px;">Save 1</button>
+              <button onclick="loadFromSlot(1)" style="padding: 4px 8px; margin: 2px;">Load 1</button>
+              <button onclick="saveToSlot(2)" style="padding: 4px 8px; margin: 2px;">Save 2</button>
+              <button onclick="loadFromSlot(2)" style="padding: 4px 8px; margin: 2px;">Load 2</button>
+              <button onclick="saveToSlot(3)" style="padding: 4px 8px; margin: 2px;">Save 3</button>
+              <button onclick="loadFromSlot(3)" style="padding: 4px 8px; margin: 2px;">Load 3</button>
+            </small>
+          </div>
+        </div>
+        
+        <!-- File-based options -->
+        <button onclick="downloadSaveFile()">⬇️ Download Save File</button>
+        <input type="file" id="uploadFile" accept=".json" onchange="uploadSaveFile(event)" style="display: none;">
+        <button onclick="document.getElementById('uploadFile').click()">⬆️ Upload Save File</button>
+        <button onclick="clearAllData()" style="background-color: #ff4444; margin-left: 10px;">🗑️ Clear All Data</button>
+        
+        <!-- GitHub Links -->
+        <div style="margin-top: 15px; padding: 10px; background-color: rgba(40, 80, 40, 0.8); border-radius: 4px;">
+          <h4 style="margin-top: 0; color: #4CAF50;">📚 Documentation & Updates</h4>
+          <p style="margin: 5px 0;">
+            <a href="https://github.com/BlanahrAbarstyrn/spb_cargo_mgmt" target="_blank" style="color: #00ccff; text-decoration: none;">
+              🔗 GitHub Repository
+            </a>
+          </p>
+          <p style="margin: 5px 0;">
+            <a href="https://github.com/BlanahrAbarstyrn/spb_cargo_mgmt/wiki" target="_blank" style="color: #00ccff; text-decoration: none;">
+              📖 Documentation Wiki
+            </a>
+          </p>
+          <p style="margin: 5px 0; font-size: 12px; color: #cccccc;">
+            Check for updates, report issues, or contribute to the project
+          </p>
         </div>
       </div>
     </div>
@@ -928,16 +944,22 @@ function calculateCarryingCapacity(totalWeight, backpackSize, bodySlotCount) {
     `Safe Carrying Capacity: ${effectiveMaxWeight.toFixed(1)}kg (${safetyBuffer}kg buffer)`;
   
   // Update load status with buffer consideration
-  let statusColor = '#4CAF50';
+  const currentLoad = totalWeight || 0;
+  let statusColor = '#4CAF50'; // Green
   let statusText = 'Light Load';
-  
-  if (remainingWeight < 1) {
-    statusColor = '#ff4444';
-    statusText = 'Near Safe Limit!';
-  } else if (remainingWeight < 5) {
-    statusColor = '#ffaa00';
-    statusText = 'Heavy Load';
-  }
+  if (currentLoad >= effectiveMaxWeight) {
+  statusColor = '#ff4444'; // Red
+  statusText = 'Overloaded!';
+} else if (currentLoad > (effectiveMaxWeight - 60)) {
+  statusColor = '#ffaa00'; // Yellow  
+  statusText = 'Heavy Load';
+} else {
+  statusColor = '#4CAF50'; // Green
+  statusText = 'Safe Load Weight';
+}
+
+
+
   
   // Add capacity status to summary
   const summary = document.getElementById('current-load-summary');
